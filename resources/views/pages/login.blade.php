@@ -23,6 +23,13 @@
             </div>
             <div class="col-sm-4">
                 <div class="signup-form"><!--sign up form-->
+                    <?php
+					$message=Session::get('message');
+					   if($message){
+						   echo $message;
+						   Session::put('message',null);
+					   }
+					?>
                     <h2>New User Signup!</h2>
                     <form action="{{url('/customer_registration')}}" method="post">
                         {{csrf_field()}}

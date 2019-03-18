@@ -8,7 +8,8 @@ use DB;
 use Cart;
 use Session;
 use Illuminate\Support\Facades\Redirect;
-use VerifyUser;
+use App\VerifyCustomer;
+use App\Mail\VerifyMail;
 use Mail;
 use App\User;
 use Illuminate\Support\Facades\Validator;
@@ -27,6 +28,7 @@ class CheckoutController extends Controller
        $result=DB::table('customer')
        ->where('customer_email', $customer_email)
        ->where('customer_password', $customer_password)
+       ->where('verified',1)
        ->first();
        if($result){
         Session::put('customer_id',$result->customer_id);
@@ -41,6 +43,9 @@ class CheckoutController extends Controller
     Session::flush();   
     return Redirect::to('/');     
     } 
+   
+   
+
 
    public function customer_registration(Request $request){
           $this->validate($request,[
@@ -48,97 +53,66 @@ class CheckoutController extends Controller
           'customer_email'=>'required|string|email|max:255|unique:customer',
           'customer_password'=>'required|string|min:6',
           'customer_number' =>'required|string',
-          ]);                        
-          $data=array();
-          $data['customer_name']=$request->customer_name;
-          $data['customer_email']=$request->customer_email;
-          $data['customer_password']=md5($request->customer_password);
-          $data['customer_number']=$request->customer_number;
-          $customer=DB::table('customer')
-          ->insertGetId($data);
-          Session::put('customer_id',$request->customer_id);
-          Session::put('customer_name',$request->customer_name);
-          return Redirect::to('/checkout');
+
+          ]);                         
+              $user=User::create([
+              'customer_name' => $request->customer_name,
+              'customer_email' =>$request->customer_email,
+              'customer_password' => md5($request->customer_password),
+              'customer_number' => $request->customer_number,
+       ]);
+              $verifyUser = VerifyCustomer::create([
+              'user_customer_id' => $user->customer_id,
+              'token' => sha1(time())
+       ]);
+       Session::put('customer_id',$request->customer_id);
+       Session::put('customer_name',$request->customer_name);
+       Session::put('message','A confirmation mail has been sent to your email');
+       \Mail::to($user->customer_email)->send(new VerifyMail($user));
+       return Redirect::to('/loginuser')->with('user',$user);    
           }
 
-                  //     protected function validator(array $data)
-                  //     {
-                  //      return Validator::make($data, [
-                  //      'customer_name' => ['required', 'string', 'max:255'],
-                  //      'customer_email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-                  //      'customer_password' => ['required', 'string', 'min:8'],
-                  //      'customer_number' => ['required', 'string', 'max:255'],
-                  //       ]);
-                  //      }
-                  //      protected function create(array $data){
-                  //              $user=User::create([
-                  //              'customer_name' => $data['customer_name'],
-                  //              'customer_email' => $data['customer_email'],
-                  //              'customer_password' => bcrypt($data['customer_password']),
-                  //              'customer_number' => $data['customer_number'],
-                  //       ]);
-                  //              $verifyUser = VerifyUser::create([
-                  //              'customer_id' => $user->customer_id,
-                  //              'token' => sha1(time())
-                  //       ]);
-    
-                  //   \Mail::to($user->email)->send(new VerifyMail($user));
-                  //   return $user;
-    
-                  // }
+                      // $this->validate($request,[
+                      // 'customer_name'=>'required|string|max:20|unique:customer',
+                      // 'customer_email'=>'required|string|email|max:255|unique:customer',
+                      // 'customer_password'=>'required|string|min:6',
+                      // 'customer_number' =>'required|string',
+                      // ]);                        
+                      // $data=array();
+                      // $data['customer_name']=$request->customer_name;
+                      // $data['customer_email']=$request->customer_email;
+                      // $data['customer_password']=md5($request->customer_password);
+                      // $data['customer_number']=$request->customer_number;
+                      // $customer=DB::table('customer')
+                      // ->insertGetId($data);
+                      // Session::put('customer_id',$request->customer_id);
+                      // Session::put('customer_name',$request->customer_name);
+                      // return Redirect::to('/checkout');          
+                      //  }
 
-                  // public function verifyUser($token){
-                  //         $verifyUser = VerifyUser::where('token', $token)->first();
-                  //             if(isset($verifyUser) ){
-                  //                      $user = $verifyUser->user;
-                  //             if(!$user->verified) {
-                  //                      $verifyUser->user->verified = 1;
-                  //                      $verifyUser->user->save();
-                  //                      $status = "Your e-mail is verified. You can now login.";
-                  //                      } else {
-                  //                      $status = "Your e-mail is already verified. You can now login.";
-                  //                      }
-                  //                      } else {
-                  //                        return redirect('/loginuser')->with('warning', "Sorry your email cannot be identified.");
-                  //                      }
-                  //                        return redirect('/checkout')->with('status', $status);
-                  // }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                  public function verifyUser($token){
+                          $verifyUser = VerifyCustomer::with('user')->where('token', $token)->first();
+                      
+                              if(isset($verifyUser) ){
+                                       $user = $verifyUser->user;
+                                  
+                              if(!$user->verified) {
+                                       $verifyUser->user->verified = 1;
+                                       $verifyUser->user->save();
+                                       $status = "Your e-mail is verified. You can now login.";
+                                       } else {
+                                       $status = "Your e-mail is already verified. You can now login.";
+                                       }
+                                       } else {
+                                         return redirect('/loginuser')->with('warning', "Sorry your email cannot be identified.");
+                                       }
+                                         return redirect('/loginuser')->with('status', $status);
+                  }
 
 
 
 
    public function checkout(){
-    // $all_published_category=DB::table('category')
-    // ->where('publication_status',1)
-    // ->get();
-
-    // $manage_published_category=view ('pages.checkout')->with('all_published_category',$all_published_category);
-    // return view('layoutcart')->with('pages.checkout',$manage_published_category);
     return view ('pages.checkout');
    } 
    

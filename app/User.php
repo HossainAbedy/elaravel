@@ -16,6 +16,7 @@ class User extends Authenticatable
      */
 
     protected $table='customer';
+    protected $primaryKey = 'customer_id';
 
     protected $fillable = [
         'customer_name', 'customer_email', 'customer_password','customer_number','verified',
@@ -26,10 +27,10 @@ class User extends Authenticatable
      *
      * @var array
      */
-    protected $hidden = [
-        'customer_password', 'remember_token',
-    ];
+    // protected $hidden = [
+    //     'customer_password', 'remember_token',
+    // ];
     public function verifyUser(){
-              return $this->hasOne('App\VerifyUser'); 
+              return $this->hasOne('App\VerifyCustomer'); 
     }
 }

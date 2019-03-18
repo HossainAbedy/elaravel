@@ -11,7 +11,8 @@
 |
 */
 
-Route::get('/send/email', 'CheckoutController@mail');
+// Route::get('/send/email', 'CheckoutController@mail');
+Route::get('/verify/{token}', 'CheckoutController@verifyUser');
 //frontend
 Route::get('/', 'HomeController@index');
 // Route::get('/search', 'HomeController@search');

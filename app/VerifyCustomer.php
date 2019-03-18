@@ -4,12 +4,12 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class VerifyUser extends Model
+class VerifyCustomer extends Model
 {
     protected $guarded = [];
  
     public function user()
     {
-        return $this->belongsTo('App\User', 'customer_id');
+        return $this->belongsTo('App\User', 'user_customer_id');
     }
 }
